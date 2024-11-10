@@ -1,0 +1,23 @@
+{
+  "name": "carritodecompras",
+  "version": "1.0.0",
+  "description": "Proyecto académico de Backend",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {
+    "dev": "node src/server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.21.1",
+    "express-handlebars": "^8.0.1",
+    "mongoose": "^8.8.1",
+    "mongoose-paginate-v2": "^1.8.5",
+    "socket.io": "^4.8.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.7"
+  }
+}
