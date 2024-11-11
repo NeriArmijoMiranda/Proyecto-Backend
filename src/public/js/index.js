@@ -4,17 +4,17 @@ const socket = io();
 
 //Lo que tengo que hacer es escuchar al Backend, que este me va a mandar los productos: 
 
-socket.on("productos", (data) => {
+socket.on("productos1", (data) => {
     renderProductos(data);
 })
 
 // Función para renderizar nuestros productos
 
-const renderProductos = (productos) => {
+const renderProductos = (productos1) => {
     const contenedorProductos = document.getElementById("contenedorProductos"); 
     contenedorProductos.innerHTML ="";
 
-    productos.forEach( item => {
+    productos1.forEach( item => {
         const card = document.createElement("div"); 
         card.classList.add("card"); 
 
