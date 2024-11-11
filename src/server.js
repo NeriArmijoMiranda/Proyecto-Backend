@@ -14,7 +14,7 @@ import CartModel from "./models/cart.model.js";
 import ProductManager from "./managers/products-manager.js";
 
 // Definir la ruta del archivo products.json
-/* const productsFilePath = path.join(process.cwd(),'src',  'data',  'products.json');
+const productsFilePath = path.join(process.cwd(),'src',  'data',  'products.json');
 
 
 if (existsSync(productsFilePath)) {
@@ -27,7 +27,7 @@ if (existsSync(productsFilePath)) {
     }
 } else {
     console.error('El archivo products.json no existe en la ruta:', productsFilePath);
-} */
+} 
 
 const app = express(); 
 const PUERTO = 8080;
@@ -49,11 +49,15 @@ app.use("/api/products", productRouter);
 app.use("/api/carts", cartRouter);
 
 // Configurar el motor de plantillas Handlebars
-app.engine('handlebars', engine());
+app.engine('handlebars', engine({
+    helpers: {
+        // Definimos el helper 'eq' para comparar dos valores
+        eq: (a, b) => a === b }
+}));
 app.set('view engine', 'handlebars');
 app.set('views', path.join(__dirname, 'views'));
 
-// Crear el servidor HTTP y conectar con socket.io
+// Crear el servidor HTTP y conectar con socket.ios
 const server = createServer(app);
 const io = new SocketServer(server);
 
@@ -71,10 +75,28 @@ try {
 // Ruta para la vista estática de Handlebars
 app.get("/", async (req, res) => {
     const page = parseInt(req.query.page) || 1; 
-    const limit = 2; 
+    const limit = parseInt(req.query.limit) || 10; 
+    const sort = req.query.sort || 'asc';  // Orden (por defecto ascendente)
+    const query = req.query.query || '';  // Filtro de búsqueda (por defecto vacío)
+    const categoryFilter = req.query.category || '';  // Filtro por categoría (por defecto vacío)
+    const sortBy = 'price'; // Solo soportamos ordenar por precio
 
+        // Filtrar los productos si 'category' está presente en los parámetros de consulta
+        let filter = {};
+        if (categoryFilter) {
+            filter.category = categoryFilter;  // Filtrar productos por categoría
+        }
+            // Si se pasa un filtro de búsqueda (query), lo agregamos al filtro
+    if (query) {
+        filter.$text = { $search: query };  // Realizar búsqueda por texto en MongoDB
+    }
     try {
-        const productsListado1 = await ProductModel.paginate({}, {limit, page}); 
+        const productsListado1 = await ProductModel.paginate(filter, {
+            limit,
+            page,
+            sort: { price: sort === 'asc' ? 1 : -1 }, // Ordenar por precio
+        });
+        
  //       console.log("Resultado de la consulta de productos:", productsListado1);
 
         //Recuperamos el array de datos que esta en docs: 
@@ -85,6 +107,7 @@ app.get("/", async (req, res) => {
 
         res.render("home", {
             productos: productos, 
+            category: categoryFilter,
             hasPrevPage: productsListado1.hasPrevPage,
             hasNextPage: productsListado1.hasNextPage,
             prevPage: productsListado1.prevPage, 
@@ -149,9 +172,9 @@ io.on("connection", async (socket) => {
 /* const manager = new ProductManager("./src/data/products.json"); */
 
     // Escuchar cuando se agrega un nuevo producto
-    socket.on("newProduct", (product) => {
+    socket.on("newProduct", async (product) => {
         // Aquí agregar el producto a la base de datos y luego emitir la lista actualizada
-        ProductModel.create(product).then(() => {
+        await ProductModel.create(product).then(() => {
             ProductModel.find().then(products => {
                 io.emit("updateProducts", products); // Actualizar a todos los clientes
             });
@@ -162,9 +185,9 @@ io.on("connection", async (socket) => {
 
 
     // Escuchar cuando se elimina un producto
-    socket.on("deleteProduct", (productId) => {
+    socket.on("deleteProduct", async (productId) => {
         console.log("Producto eliminado:", productId);
-        ProductModel.findByIdAndDelete(productId).then(() => {
+        await ProductModel.findByIdAndDelete(productId).then(() => {
             ProductModel.find().then(products => {
                 io.emit("updateProducts", products); // Enviar productos actualizados a todos los clientes
             });
